@@ -1,5 +1,6 @@
 package com.bah.externship;
 
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
@@ -72,14 +73,20 @@ public class CustomWritableJob extends Configured implements Tool {
 				sorted.add(new CustomWritable(value.getText(),value.getNumber()));
 			}
 			Collections.sort(sorted);
-
+//			double[] closeVal = new double[sorted.size()];
 			for (CustomWritable value : sorted) {
 				String date = value.getText();
 				double close = value.getNumber();
+//				closeVal[i] = sorted.get(i).getNumber();
 				outputKey.set(symbol);
 				outputValue.set(date + "_" + close);
 				context.write(outputKey, outputValue);
+				
 			}
+//			DescriptiveStatistics data = new DescriptiveStatistics(closeVal);
+//			System.out.println(key+": " + data.getStandardDeviation());
+			
+			
 		}
 	}
 
