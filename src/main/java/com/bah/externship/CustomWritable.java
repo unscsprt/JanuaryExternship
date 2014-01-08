@@ -6,7 +6,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-public class CustomWritable implements Writable {
+public class CustomWritable implements Writable, Comparable<CustomWritable>{
 
     private String text;
     private double number;
@@ -47,4 +47,11 @@ public class CustomWritable implements Writable {
         text = dataInput.readUTF();
         number = dataInput.readDouble();
     }
+
+	@Override
+	public int compareTo(CustomWritable o) {
+		// TODO Auto-generated method stub
+		// multiply by -1 to keep the original order
+		return -1*this.text.compareTo(o.text);
+	}
 }

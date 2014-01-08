@@ -14,6 +14,8 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 
 // ##############
 // ##############
@@ -52,15 +54,20 @@ public class CustomWritableJob extends Configured implements Tool {
         public void reduce(Text key, Iterable<CustomWritable> values, Context context) throws IOException, InterruptedException {
 
             String symbol = key.toString();
-
+            
+           	ArrayList<CustomWritable> sorted = new ArrayList<CustomWritable>();
             for(CustomWritable value : values){
-                String date = value.getText();
-                double close = value.getNumber();
-                outputKey.set(symbol);
-                outputValue.set(date + "_" + close);
-                context.write(outputKey, outputValue);
+            	sorted.add(value);
             }
-
+            Collections.sort(sorted);
+            
+            for(CustomWritable value : sorted){
+            	 String date = value.getText();
+                 double close = value.getNumber();
+                 outputKey.set(symbol);
+                 outputValue.set(date + "_" + close);
+                 context.write(outputKey, outputValue);
+            }
         }
     }
 
