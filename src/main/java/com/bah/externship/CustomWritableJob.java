@@ -27,80 +27,95 @@ import java.util.Collections;
 
 public class CustomWritableJob extends Configured implements Tool {
 
-    public static class CustomMap extends Mapper<LongWritable, Text, Text, CustomWritable> {
-        private Text outKey = new Text();
-        private CustomWritable outValue = new CustomWritable();
+	public static class CustomMap extends
+			Mapper<LongWritable, Text, Text, CustomWritable> {
+		final String XOM = "XOM";
+		final String WMT = "WMT";
+		final String DIS = "DIS";
+		final String CSX = "CSX";
 
-        @Override
-        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-            String[] line = value.toString().split("\t");
-            String symbol = line[1];
-            String date = line[2];
-            String close = line[6];
+		private Text outKey = new Text();
+		private CustomWritable outValue = new CustomWritable();
 
-            outKey.set(symbol);
-            outValue.setText(date);
-            outValue.setNumber(Double.parseDouble(close));
-            context.write(outKey, outValue);
-        }
-    }
+		@Override
+		public void map(LongWritable key, Text value, Context context)
+				throws IOException, InterruptedException {
+			String[] line = value.toString().split("\t");
+			String symbol = line[1];
+			String date = line[2];
+			String close = line[6];
 
-    public static class CustomReduce extends Reducer<Text, CustomWritable, Text, Text> {
+			if (XOM.equals(symbol) || WMT.equals(symbol) || DIS.equals(symbol)
+					|| CSX.equals(symbol)) {
+				outKey.set(symbol);
+				outValue.setText(date);
+				outValue.setNumber(Double.parseDouble(close));
+				context.write(outKey, outValue);
+			}
+		}
+	}
 
-        private Text outputKey = new Text();
-        private Text outputValue = new Text();
+	public static class CustomReduce extends
+			Reducer<Text, CustomWritable, Text, Text> {
 
-        @Override
-        public void reduce(Text key, Iterable<CustomWritable> values, Context context) throws IOException, InterruptedException {
+		private Text outputKey = new Text();
+		private Text outputValue = new Text();
 
-            String symbol = key.toString();
-            
-           	ArrayList<CustomWritable> sorted = new ArrayList<CustomWritable>();
-            for(CustomWritable value : values){
-            	sorted.add(value);
-            }
-            Collections.sort(sorted);
-            
-            for(CustomWritable value : sorted){
-            	 String date = value.getText();
-                 double close = value.getNumber();
-                 outputKey.set(symbol);
-                 outputValue.set(date + "_" + close);
-                 context.write(outputKey, outputValue);
-            }
-        }
-    }
+		@Override
+		public void reduce(Text key, Iterable<CustomWritable> values,
+				Context context) throws IOException, InterruptedException {
 
-    @Override
-    public int run(String[] strings) throws Exception {
+			String symbol = key.toString();
 
-        Job job = new Job(getConf(), "CustomWritableJob");
-        job.setJarByClass(CustomWritable.class);
+			ArrayList<CustomWritable> sorted = new ArrayList<CustomWritable>();
+			for (CustomWritable value : values) {
+				sorted.add(new CustomWritable(value.getText(),value.getNumber()));
+			}
+			Collections.sort(sorted);
 
-        // THIS PART IS NEW!!!!!
-        // ==============
-        job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(CustomWritable.class);
-        // ==============
+			for (CustomWritable value : sorted) {
+				String date = value.getText();
+				double close = value.getNumber();
+				outputKey.set(symbol);
+				outputValue.set(date + "_" + close);
+				context.write(outputKey, outputValue);
+			}
+		}
+	}
 
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Text.class);
+	@Override
+	public int run(String[] strings) throws Exception {
 
-        job.setMapperClass(CustomMap.class);
-        job.setReducerClass(CustomReduce.class);
+		Job job = new Job(getConf(), "CustomWritableJob");
+		job.setJarByClass(CustomWritable.class);
 
-        job.setInputFormatClass(TextInputFormat.class);
-        job.setOutputFormatClass(TextOutputFormat.class);
+		// THIS PART IS NEW!!!!!
+		// ==============
+		job.setMapOutputKeyClass(Text.class);
+		job.setMapOutputValueClass(CustomWritable.class);
+		// ==============
 
-        TextInputFormat.setInputPaths(job, new Path("/user/hue/NYSE-2000-2001.tsv"));
-        TextOutputFormat.setOutputPath(job, new Path("/user/hue/jobs/" + System.currentTimeMillis()));
+		job.setOutputKeyClass(Text.class);
+		job.setOutputValueClass(Text.class);
 
-        job.waitForCompletion(true);
-        return 0;
-    }
+		job.setMapperClass(CustomMap.class);
+		job.setReducerClass(CustomReduce.class);
 
-    public static void main(String[] args) throws Exception {
-        int res = ToolRunner.run(new Configuration(), new CustomWritableJob(), args);
-        System.exit(res);
-    }
+		job.setInputFormatClass(TextInputFormat.class);
+		job.setOutputFormatClass(TextOutputFormat.class);
+
+		TextInputFormat.setInputPaths(job, new Path(
+				"/user/hue/NYSE-2000-2001.tsv"));
+		TextOutputFormat.setOutputPath(job,
+				new Path("/user/hue/jobs/" + System.currentTimeMillis()));
+
+		job.waitForCompletion(true);
+		return 0;
+	}
+
+	public static void main(String[] args) throws Exception {
+		int res = ToolRunner.run(new Configuration(), new CustomWritableJob(),
+				args);
+		System.exit(res);
+	}
 }
